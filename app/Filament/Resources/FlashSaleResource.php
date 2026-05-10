@@ -1,0 +1,93 @@
+<?php
+
+namespace App\Filament\Resources;
+
+use App\Filament\Resources\FlashSaleResource\Pages;
+use App\Models\FlashSale;
+use Filament\Forms;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Table;
+
+class FlashSaleResource extends Resource
+{
+    protected static ?string $model = FlashSale::class;
+
+    protected static ?string $navigationIcon = 'heroicon-o-bolt';
+    protected static ?string $navigationGroup = 'Sales';
+
+    public static function form(Form $form): Form
+    {
+        return $form
+            ->schema([
+                Forms\Components\Section::make('Flash Sale Details')
+                    ->schema([
+                        Forms\Components\Select::make('product_id')
+                            ->relationship('product', 'name')
+                            ->searchable()
+                            ->preload()
+                            ->required(),
+
+                        Forms\Components\TextInput::make('discount_price')
+                            ->numeric()
+                            ->prefix('$')
+                            ->required(),
+
+                        Forms\Components\DateTimePicker::make('starts_at')
+                            ->required(),
+
+                        Forms\Components\DateTimePicker::make('ends_at')
+                            ->required()
+                            ->after('starts_at'),
+
+                        Forms\Components\Toggle::make('is_active')
+                            ->default(true),
+                    ])->columns(2),
+            ]);
+    }
+
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns([
+                Tables\Columns\TextColumn::make('product.name')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('discount_price')
+                    ->money('usd')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('starts_at')
+                    ->dateTime()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('ends_at')
+                    ->dateTime()
+                    ->sortable(),
+
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean(),
+            ])
+            ->filters([])
+            ->actions([
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListFlashSales::route('/'),
+            'create' => Pages\CreateFlashSale::route('/create'),
+            'edit' => Pages\EditFlashSale::route('/{record}/edit'),
+        ];
+    }
+}
