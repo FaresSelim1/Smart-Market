@@ -53,29 +53,25 @@ class ProductResource extends Resource
                             ->unique(ignoreRecord: true)
                             ->required(),
 
-                        FileUpload::make('product_images')
+                        Forms\Components\Repeater::make('images')
                             ->label('Product Images')
-                            ->multiple()
-                            ->reorderable()
-                            ->image()
-                            ->imagePreviewHeight('250')
-                            ->downloadable()
-                            ->openable()
-                            ->disk('public')
-                            ->directory('products')
-                            ->maxSize(5120)
-                            ->helperText('Upload multiple images for this product.')
-                            ->saveRelationshipsUsing(function (Product $record, $state) {
-                                $record->images()->delete();
-                                $normalizedImages = array_values(array_filter((array) $state, fn($path) => is_string($path)));
-                                foreach ($normalizedImages as $index => $path) {
-                                    $record->images()->create([
-                                        'path'       => $path,
-                                        'sort_order' => (int) $index,
-                                    ]);
-                                }
-                            })
-                            ->dehydrated(false),
+                            ->relationship('images')
+                            ->schema([
+                                FileUpload::make('path')
+                                    ->label('Image')
+                                    ->image()
+                                    ->disk('public')
+                                    ->directory('products')
+                                    ->imagePreviewHeight('200')
+                                    ->required(),
+                                Forms\Components\Hidden::make('sort_order')
+                                    ->default(0),
+                            ])
+                            ->reorderable('sort_order')
+                            ->itemLabel(fn (array $state): ?string => 'Image ' . ($state['sort_order'] ?? ''))
+                            ->grid(2)
+                            ->columnSpanFull()
+                            ->addActionLabel('Add New Image'),
 
                     ])->columns(2),
 

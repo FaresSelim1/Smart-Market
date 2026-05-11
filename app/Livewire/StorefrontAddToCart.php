@@ -20,8 +20,7 @@ class StorefrontAddToCart extends Component
         $cart->add($this->productId, 1);
         $this->dispatch('cart-updated');
 
-        // keep UX simple; user stays on product page
-        $this->dispatch('notify', message: 'Added to bag!');
+        session()->flash('message', 'Item successfully added to your cart!');
     }
 
     public function render()
