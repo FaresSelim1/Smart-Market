@@ -17,6 +17,11 @@ class CreateProduct extends CreateRecord
         $data = $this->form->getRawState();
 
         ProductResource::syncBranchStock($this->record, $data);
-        ProductResource::saveProductImages($this->record, $data);
+        
+        // Refresh the form state with permanent paths to clear temporary upload state
+        $this->data['product_images'] = $this->record->images()
+                ->orderBy('sort_order')
+                ->pluck('path')
+                ->toArray();
     }
 }

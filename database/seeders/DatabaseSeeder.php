@@ -56,50 +56,56 @@ class DatabaseSeeder extends Seeder
             ['name' => 'Security Equipment']
         );
 
-        // 4. Create Products and attach to branches
-        $laptop = Product::firstOrCreate(
-            ['sku' => 'HW-MB-001'],
-            [
-                'category_id' => $electronics->id,
-                'name'        => 'MateBook B3',
-                'description' => 'High performance laptop for professionals',
-                'price'       => 1200.00,
-            ]
-        );
-        $laptop->branches()->syncWithoutDetaching([
+        // 4. Clear existing product data
+        \Schema::disableForeignKeyConstraints();
+        \DB::table('product_images')->delete();
+        \DB::table('branch_product')->delete();
+        \DB::table('flash_sales')->delete();
+        \DB::table('order_items')->delete(); // Clear order items too
+        Product::query()->delete();
+        \Schema::enableForeignKeyConstraints();
+
+        // 5. Create Products and attach to branches
+        $laptop = Product::create([
+            'sku'         => 'HW-MB-001',
+            'category_id' => $electronics->id,
+            'name'        => 'MateBook B3 Pro',
+            'description' => 'High performance workstation laptop with 4K display and titanium finish.',
+            'price'       => 1499.00,
+        ]);
+        $laptop->images()->create(['path' => 'products/laptop.png', 'sort_order' => 0]);
+        $laptop->branches()->sync([
             $branch1->id => ['stock_level' => 50, 'low_stock_threshold' => 10],
             $branch2->id => ['stock_level' => 5, 'low_stock_threshold' => 10],
         ]);
 
-        $camera = Product::firstOrCreate(
-            ['sku' => 'SEC-CAM-001'],
-            [
-                'category_id' => $security->id,
-                'name'        => 'HD Security Camera',
-                'description' => '1080p weatherproof security camera with night vision',
-                'price'       => 299.99,
-            ]
-        );
-        $camera->branches()->syncWithoutDetaching([
+        $camera = Product::create([
+            'sku'         => 'SEC-CAM-001',
+            'category_id' => $security->id,
+            'name'        => 'Onyx Smart Guard',
+            'description' => '4K Night-vision AI-powered security camera with two-way audio.',
+            'price'       => 349.99,
+        ]);
+        $camera->images()->create(['path' => 'products/camera.png', 'sort_order' => 0]);
+        $camera->branches()->sync([
             $branch1->id => ['stock_level' => 100, 'low_stock_threshold' => 20],
             $branch2->id => ['stock_level' => 75, 'low_stock_threshold' => 15],
         ]);
 
-        $headphones = Product::firstOrCreate(
-            ['sku' => 'ACC-HP-001'],
-            [
-                'category_id' => $accessories->id,
-                'name'        => 'Wireless Headphones Pro',
-                'description' => 'Noise-canceling wireless headphones with 30hr battery',
-                'price'       => 189.00,
-            ]
-        );
-        $headphones->branches()->syncWithoutDetaching([
+        $headphones = Product::create([
+            'sku'         => 'ACC-HP-001',
+            'category_id' => $accessories->id,
+            'name'        => 'AeroTune Pro',
+            'description' => 'Studio-grade noise canceling headphones with 40-hour battery life.',
+            'price'       => 249.00,
+        ]);
+        $headphones->images()->create(['path' => 'products/headphones.png', 'sort_order' => 0]);
+        $headphones->branches()->sync([
             $branch1->id => ['stock_level' => 30, 'low_stock_threshold' => 5],
             $branch2->id => ['stock_level' => 8, 'low_stock_threshold' => 5],
         ]);
 
-        // 5. Create Coupons (matching the enum: 'fixed' or 'percent')
+        // 6. Create Coupons (matching the enum: 'fixed' or 'percent')
         Coupon::updateOrCreate(
             ['code' => 'STORE2026'],
             [
@@ -113,24 +119,11 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        Coupon::updateOrCreate(
-            ['code' => 'FLAT20'],
-            [
-                'type'           => 'fixed',
-                'value'          => 20,
-                'max_uses'       => 50,
-                'used_count'     => 0,
-                'min_cart_value'  => 50.00,
-                'is_active'      => true,
-                'expires_at'     => Carbon::now()->addMonths(3),
-            ]
-        );
-
-        // 6. Create Flash Sale
+        // 7. Create Flash Sale
         \App\Models\FlashSale::updateOrCreate(
             ['product_id' => $laptop->id],
             [
-                'discount_price' => 899.99,
+                'discount_price' => 1199.99,
                 'starts_at'      => Carbon::now()->subDay(),
                 'ends_at'        => Carbon::now()->addDays(2),
                 'is_active'      => true,

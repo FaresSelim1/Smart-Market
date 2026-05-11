@@ -22,6 +22,7 @@ class EditProduct extends EditRecord
      */
     protected function mutateFormDataBeforeFill(array $data): array
     {
+        // Load branch stock
         $data['branch_stock'] = $this->record->branches->map(function ($branch) {
             return [
                 'branch_id'            => $branch->id,
@@ -29,6 +30,12 @@ class EditProduct extends EditRecord
                 'low_stock_threshold'  => $branch->pivot->low_stock_threshold,
             ];
         })->toArray();
+
+        // Load existing images into the 'product_images' field
+        $data['product_images'] = array_values($this->record->images()
+            ->orderBy('sort_order')
+            ->pluck('path')
+            ->toArray());
 
         return $data;
     }
@@ -41,6 +48,12 @@ class EditProduct extends EditRecord
         $data = $this->form->getRawState();
 
         ProductResource::syncBranchStock($this->record, $data);
-        ProductResource::saveProductImages($this->record, $data);
+
+        // Refresh the form state with permanent paths to clear temporary upload state
+        // This resolves the "Infinite Loading" and "Waiting for size" issues
+        $this->data['product_images'] = $this->record->images()
+                ->orderBy('sort_order')
+                ->pluck('path')
+                ->toArray();
     }
 }

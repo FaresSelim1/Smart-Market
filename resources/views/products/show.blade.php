@@ -15,7 +15,7 @@
                         @foreach($images as $img)
                             <div style="border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; background:#f8fafc;">
                                 <img
-                                    src="{{ Storage::disk('public')->url($img->path) }}"
+                                    src="{{ asset('storage/' . $img->path) }}"
                                     alt="{{ $product->name }}"
                                     style="width:100%; height:110px; object-fit:cover; display:block;"
                                 >
@@ -26,7 +26,7 @@
                     @if($primary)
                         <div style="border:1px solid #e2e8f0; border-radius:18px; overflow:hidden; background:#f8fafc;">
                             <img
-                                src="{{ Storage::disk('public')->url($primary->path) }}"
+                                src="{{ asset('storage/' . $primary->path) }}"
                                 alt="{{ $product->name }}"
                                 style="width:100%; height:240px; object-fit:cover; display:block;"
                             >

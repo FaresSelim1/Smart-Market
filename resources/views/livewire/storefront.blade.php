@@ -161,7 +161,7 @@
 
                 <a href="{{ route('products.show', $product->id) }}" style="text-decoration: none; color: inherit;">
                     <div class="image-container">
-                        <img src="{{ optional($product->primaryImage)->path ? Storage::disk('public')->url($product->primaryImage->path) : ($product->image_url ?? 'https://via.placeholder.com/400x300') }}" 
+                        <img src="{{ optional($product->primaryImage)->path ? asset('storage/' . $product->primaryImage->path) : ($product->image_url ?? 'https://via.placeholder.com/400x300') }}" 
                              class="product-image" 
                              alt="{{ $product->name }}">
                     </div>

@@ -56,11 +56,25 @@ class ProductResource extends Resource
                         FileUpload::make('product_images')
                             ->label('Product Images')
                             ->multiple()
+                            ->reorderable()
                             ->image()
+                            ->imagePreviewHeight('250')
+                            ->downloadable()
+                            ->openable()
                             ->disk('public')
                             ->directory('products')
                             ->maxSize(5120)
                             ->helperText('Upload multiple images for this product.')
+                            ->saveRelationshipsUsing(function (Product $record, $state) {
+                                $record->images()->delete();
+                                $normalizedImages = array_values(array_filter((array) $state, fn($path) => is_string($path)));
+                                foreach ($normalizedImages as $index => $path) {
+                                    $record->images()->create([
+                                        'path'       => $path,
+                                        'sort_order' => (int) $index,
+                                    ]);
+                                }
+                            })
                             ->dehydrated(false),
 
                     ])->columns(2),
@@ -102,6 +116,10 @@ class ProductResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('primaryImage.path')
+                    ->label('Image')
+                    ->disk('public')
+                    ->circular(),
                 Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
                 Tables\Columns\TextColumn::make('category.name')->badge()->color('warning'),
                 Tables\Columns\TextColumn::make('price')->money('usd')->sortable(),
@@ -174,27 +192,7 @@ class ProductResource extends Resource
         }
     }
 
-    /**
-     * Save uploaded images as ProductImage records.
-     */
-    public static function saveProductImages(Product $record, array $data): void
-    {
-        $images = $data['product_images'] ?? [];
-        if (! is_array($images) || empty($images)) {
-            return;
-        }
 
-        // Normalize array keys to ensure $index is always a clean integer
-        // This avoids UUID string keys from Livewire's internal state
-        $normalizedImages = array_values(array_filter($images, fn($path) => is_string($path)));
-
-        foreach ($normalizedImages as $index => $path) {
-            $record->images()->create([
-                'path'       => $path,
-                'sort_order' => (int) $index,
-            ]);
-        }
-    }
 
     public static function getPages(): array
     {
