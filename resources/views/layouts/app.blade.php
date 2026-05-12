@@ -192,6 +192,36 @@
         }
         .logout-btn:hover { text-decoration: underline; }
 
+        .profile-nav-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: var(--brand-dark);
+            font-weight: 700;
+            padding: 8px 16px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            background: rgba(250, 204, 21, 0.1);
+            border: 1px solid rgba(250, 204, 21, 0.2);
+        }
+
+        .profile-nav-link:hover {
+            background: var(--brand-yellow);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--brand-yellow-glow);
+        }
+
+        .profile-nav-link svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .profile-nav-link span { display: none; }
+            .profile-nav-link { padding: 8px; }
+        }
+
         /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 10px; }
         ::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -202,7 +232,17 @@
 </head>
 <body>
     <nav>
-        <a href="/" class="logo">SMART<span>.</span>MARKET</a>
+        <div style="display: flex; align-items: center; gap: 2rem;">
+            @auth
+                <a href="{{ route('profile') }}" class="profile-nav-link">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                    </svg>
+                    <span>Profile</span>
+                </a>
+            @endauth
+            <a href="/" class="logo">SMART<span>.</span>MARKET</a>
+        </div>
         <div class="nav-links">
             <a href="/">Catalog</a>
             @auth

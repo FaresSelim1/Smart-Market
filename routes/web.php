@@ -34,6 +34,8 @@ Route::middleware(['auth'])->group(function () {
     
     Route::get('/payment/success', [PaymentController::class, 'handleGatewayCallback'])->name('payment.success');
     Route::get('/payment/cancel', [PaymentController::class, 'handleCancel'])->name('payment.cancel');
+
+    Route::get('/profile', [\App\Http\Controllers\ProfileController::class, 'index'])->name('profile');
 });
 
 // 4. WEBHOOKS (no CSRF, no auth)
