@@ -92,8 +92,7 @@
         .product-image { 
             width: 100%; 
             height: 100%; 
-            object-fit: contain; 
-            padding: 1.5rem;
+            object-fit: cover; 
             transition: transform 0.6s ease;
         }
         .product-card:hover .product-image { transform: scale(1.1); }
@@ -128,8 +127,8 @@
 
     {{-- Hero Section --}}
     <div class="hero-section">
-        <h1 class="hero-title">Upgrade Your<br><span>Security</span> Matrix.</h1>
-        <p class="hero-subtitle">Premium protection equipment for modern branches. Secure your assets with the world's most advanced hardware.</p>
+        <h1 class="hero-title">Experience the Future<br><span>Shopping</span> at GO.Market.</h1>
+        <p class="hero-subtitle">The most intelligent e-commerce ecosystem. Shop with speed, security, and smart features designed for a premium experience.</p>
     </div>
 
     {{-- Search & Filters --}}

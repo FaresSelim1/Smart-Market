@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMART MARKET — Premium Protection</title>
+    <title>GO.Market — Smart E-Commerce</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
@@ -241,7 +241,7 @@
                     <span>Profile</span>
                 </a>
             @endauth
-            <a href="/" class="logo">SMART<span>.</span>MARKET</a>
+            <a href="/" class="logo">GO<span>.</span>MARKET</a>
         </div>
         <div class="nav-links">
             <a href="/">Catalog</a>

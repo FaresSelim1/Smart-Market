@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sign In | SMART MARKET</title>
+    <title>Sign In | GO.Market</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
@@ -113,7 +113,7 @@
 </head>
 <body>
     <div class="login-card">
-        <div class="logo">SMART<span>.</span>MARKET</div>
+        <div class="logo">GO<span>.</span>MARKET</div>
         <h2>Access Portal</h2>
         <p>Sign in to manage your premium protection systems.</p>
         
@@ -131,7 +131,7 @@
                 @error('password') <span class="error">{{ $message }}</span> @enderror
             </div>
 
-            <button type="submit" class="btn-yellow">Initialize Session</button>
+            <button type="submit" class="btn-yellow">Login</button>
         </form>
 
         <div class="footer-links">

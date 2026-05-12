@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Join | SMART MARKET</title>
+    <title>Join | GO.Market</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@700;800;900&display=swap" rel="stylesheet">
@@ -116,7 +116,7 @@
 </head>
 <body>
     <div class="auth-card">
-        <div class="logo">SMART<span>.</span>MARKET</div>
+        <div class="logo">GO<span>.</span>MARKET</div>
         <h2>Operator Registry</h2>
         <p>Register to join the global security network.</p>
         
@@ -146,7 +146,7 @@
             </div>
             @error('password') <span class="error">{{ $message }}</span> @enderror
 
-            <button type="submit" class="btn-yellow">Register Operator</button>
+            <button type="submit" class="btn-yellow">Register</button>
         </form>
 
         <div class="footer-links">
