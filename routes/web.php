@@ -13,6 +13,7 @@ Route::middleware(['web', \App\Http\Middleware\SetBranchContext::class])->group(
     Route::get('/', Storefront::class)->name('home');
     Route::get('/cart', ShoppingCart::class)->name('cart');
     Route::get('/products/{product}', [\App\Http\Controllers\ProductPageController::class, 'show'])->name('products.show');
+    Route::get('/checkout', \App\Livewire\Checkout::class)->name('checkout');
 });
 
 // 2. AUTHENTICATION
@@ -31,7 +32,6 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::get('/orders/{order}/invoice', [OrderController::class, 'downloadInvoice'])->name('orders.invoice');
     
-    Route::get('/checkout', \App\Livewire\Checkout::class)->name('checkout');
     Route::get('/payment/success', [PaymentController::class, 'handleGatewayCallback'])->name('payment.success');
     Route::get('/payment/cancel', [PaymentController::class, 'handleCancel'])->name('payment.cancel');
 });

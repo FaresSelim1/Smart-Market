@@ -24,6 +24,39 @@ class ShoppingCart extends Component
     protected $listeners = ['cart-updated' => '$refresh'];
 
     /**
+     * Increment item quantity.
+     */
+    public function incrementQuantity($productId): void
+    {
+        $items = app(CartService::class)->getItems();
+        $item = $items->firstWhere('product_id', $productId);
+        
+        if ($item) {
+            app(CartService::class)->updateQuantity((int) $productId, $item['quantity'] + 1);
+            $this->dispatch('cart-updated');
+        }
+    }
+
+    /**
+     * Decrement item quantity.
+     */
+    public function decrementQuantity($productId): void
+    {
+        $items = app(CartService::class)->getItems();
+        $item = $items->firstWhere('product_id', $productId);
+        
+        if ($item) {
+            $newQty = $item['quantity'] - 1;
+            if ($newQty <= 0) {
+                $this->removeItem($productId);
+            } else {
+                app(CartService::class)->updateQuantity((int) $productId, $newQty);
+                $this->dispatch('cart-updated');
+            }
+        }
+    }
+
+    /**
      * Remove an item from the cart.
      */
     public function removeItem($productId): void

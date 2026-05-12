@@ -21,24 +21,39 @@
     <div style="margin-bottom: 4rem;">
         <h1 style="font-weight: 900; color: var(--brand-dark); margin: 0; font-size: 2.5rem;">Hardware Vault</h1>
         <p style="color: var(--text-muted); margin: 0.5rem 0 0;">Items you've flagged for future deployment.</p>
+
+        @if(session()->has('message'))
+            <div style="margin-top: 2rem; padding: 1rem 1.5rem; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; border-radius: 12px; font-weight: 700;">
+                {{ session('message') }}
+            </div>
+        @endif
     </div>
 
     <div class="wishlist-grid">
         @forelse($wishlist as $product)
             <div class="wish-card" wire:key="wish-{{ $product->id }}">
-                <div style="margin-bottom: 1.5rem;">
-                    <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">{{ $product->category->name ?? 'General' }}</span>
-                    <h3 style="margin: 0.25rem 0 0; font-size: 1.3rem; font-weight: 800; color: var(--brand-dark);">{{ $product->name }}</h3>
+                <div class="image-container" style="width: 100%; height: 200px; background: #f8fafc; border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden; position: relative;">
+                    <a href="{{ route('products.show', $product->id) }}">
+                        <img src="{{ optional($product->primaryImage)->path ? asset('storage/' . $product->primaryImage->path) : 'https://via.placeholder.com/400x300' }}" 
+                             style="width: 100%; height: 100%; object-fit: contain; padding: 1rem;" 
+                             alt="{{ $product->name }}">
+                    </a>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 2rem;">
+                <div style="margin-bottom: 1.5rem;">
+                    <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.05em;">{{ $product->category->name ?? 'General' }}</span>
+                    <a href="{{ route('products.show', $product->id) }}" style="text-decoration: none;">
+                        <h3 style="margin: 0.25rem 0 0; font-size: 1.3rem; font-weight: 800; color: var(--brand-dark);">{{ $product->name }}</h3>
+                    </a>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
                     <span class="wish-price">${{ number_format($product->price, 2) }}</span>
                     
                     <div style="display: flex; gap: 0.75rem;">
-                        <a href="{{ route('products.show', $product->id) }}" class="btn" style="background: #f1f5f9; color: var(--brand-dark); padding: 0.6rem 1rem; font-size: 0.8rem; text-decoration: none;">View</a>
                         <button wire:click="removeFromWishlist({{ $product->id }})"
                                 class="btn" 
-                                style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 0.6rem 1rem; font-size: 0.8rem; letter-spacing: 0;">
+                                style="background: rgba(239, 68, 68, 0.1); color: #ef4444; padding: 0.6rem 1rem; font-size: 0.8rem; letter-spacing: 0; border: none; border-radius: 8px; font-weight: 700; cursor: pointer;">
                             Remove
                         </button>
                     </div>
@@ -49,7 +64,7 @@
                 <div style="font-size: 4rem; margin-bottom: 2rem; opacity: 0.5;">🔒</div>
                 <h2 style="font-weight: 900; color: var(--brand-dark); margin: 0 0 0.5rem;">The Vault is Empty</h2>
                 <p style="color: var(--text-muted); margin-bottom: 2.5rem;">You haven't flagged any equipment for your vault yet.</p>
-                <a href="/" class="btn btn-yellow">Browse Catalog</a>
+                <a href="/" class="btn btn-yellow" style="text-decoration: none; display: inline-block;">Browse Catalog</a>
             </div>
         @endforelse
     </div>

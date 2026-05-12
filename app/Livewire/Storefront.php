@@ -17,6 +17,9 @@ class Storefront extends Component
     
     public $activeBranchId;
 
+    #[Url]
+    public $selectedCategoryId = null;
+
     // Catalog mode: null = Global (all branches), otherwise branch id
     public $catalogBranchId = null;
 
@@ -52,22 +55,6 @@ class Storefront extends Component
         return (is_numeric($value) && (int) $value > 0) ? (int) $value : null;
     }
 
-    /**
-     * Logic for adding products to the session-based cart.
-     */
-    public function addToCart($productId, \App\Services\CartService $cart)
-    {
-        $cart->add((int) $productId, 1);
-        $this->dispatch('cart-updated');
-
-        session()->flash('message', 'Added to bag!');
-
-        logger()->info('AddToCart success', [
-            'user_id' => Auth::id(),
-            'product_id' => $productId,
-        ]);
-    }
-
     #[Layout('layouts.app')]
     public function render(ProductService $productService)
     {
@@ -76,8 +63,10 @@ class Storefront extends Component
             'products' => $productService->getAvailableProducts(
                 catalogBranchId: $this->catalogBranchId,
                 search: (string) $this->search,
+                categoryId: $this->selectedCategoryId,
             ),
-            'branches' => Branch::all()
+            'branches' => Branch::all(),
+            'categories' => \App\Models\Category::select('id', 'name')->get(),
         ]);
     }
 }

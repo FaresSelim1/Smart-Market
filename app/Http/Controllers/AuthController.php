@@ -12,7 +12,7 @@ class AuthController extends Controller
     public function showLogin() { return view('auth.login'); }
     public function showRegister() { return view('auth.register'); }
 
-    public function login(Request $request) {
+    public function login(Request $request, \App\Services\CartService $cartService) {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
@@ -20,6 +20,10 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
+            
+            // Merge guest cart into user cart
+            $cartService->merge();
+
             // This sends the user back to the cart if that's where they were interrupted
             return redirect()->intended(route('home'));
         }
@@ -27,7 +31,7 @@ class AuthController extends Controller
         return back()->withErrors(['email' => 'Invalid credentials.']);
     }
 
-    public function register(Request $request) {
+    public function register(Request $request, \App\Services\CartService $cartService) {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
@@ -41,6 +45,10 @@ class AuthController extends Controller
         ]);
 
         Auth::login($user);
+
+        // Merge guest cart into user cart
+        $cartService->merge();
+
         return redirect()->intended(route('home'));
     }
 

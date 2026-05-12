@@ -272,16 +272,10 @@
                 </div>
 
                 <div class="action-buttons">
-                    @auth
-                        @livewire('storefront-add-to-cart', ['productId' => $product->id])
-                        <a href="{{ route('cart') }}" class="btn" style="background: rgba(255,255,255,0.1); color: #fff; padding: 1.25rem; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; text-transform: uppercase;">
-                            View Cart
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" class="btn btn-yellow" style="padding: 1.25rem; border-radius: 16px; text-align: center; font-weight: 900; text-transform: uppercase;">
-                            Secure Login to Purchase
-                        </a>
-                    @endauth
+                    @livewire('storefront-add-to-cart', ['productId' => $product->id])
+                    <a href="{{ route('cart') }}" class="btn" style="background: rgba(255,255,255,0.1); color: #fff; padding: 1.25rem; border-radius: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.2); font-weight: 700; text-transform: uppercase;">
+                        View Cart
+                    </a>
                 </div>
             </div>
         </div>

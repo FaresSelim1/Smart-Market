@@ -12,12 +12,18 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {
+        $brands = ['Apple', 'Samsung', 'Sony', 'Dell', 'HP', 'Lenovo', 'Asus', 'Logitech', 'Bose', 'Sennheiser', 'Netgear', 'TP-Link'];
+        $techAdjectives = ['Pro', 'Elite', 'Ultra', 'Smart', 'Wireless', 'Noise-Cancelling', 'High-Speed', 'Next-Gen'];
+        $productNames = ['Station', 'Hub', 'Pad', 'Link', 'Gate', 'Core', 'Flow', 'X-1', 'Z-Prime'];
+
+        $name = fake()->randomElement($brands) . ' ' . fake()->randomElement($techAdjectives) . ' ' . fake()->randomElement($productNames);
+
         return [
             'category_id' => Category::factory(),
-            'name'        => fake()->words(3, true),
-            'description' => fake()->paragraph(),
-            'price'       => fake()->randomFloat(2, 10, 5000),
-            'sku'         => strtoupper(fake()->unique()->bothify('??-###-???')),
+            'name'        => $name,
+            'description' => fake()->sentences(3, true),
+            'price'       => fake()->randomFloat(2, 49, 2999),
+            'sku'         => strtoupper(fake()->unique()->bothify('??-####-??')),
         ];
     }
 }

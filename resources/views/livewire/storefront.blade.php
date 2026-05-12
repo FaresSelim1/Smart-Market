@@ -141,6 +141,13 @@
             @endforeach
         </select>
 
+        <select wire:model.live="selectedCategoryId" class="filter-select">
+            <option value="">All Categories</option>
+            @foreach($categories as $category)
+                <option value="{{ $category->id }}">{{ $category->name }}</option>
+            @endforeach
+        </select>
+
         <input type="text" 
                wire:model.live.debounce.300ms="search" 
                placeholder="Search entire collection..." 
@@ -188,15 +195,11 @@
                         @endif
                     </div>
                     
-                    <button wire:click="addToCart({{ $product->id }})" 
-                            wire:loading.attr="disabled"
-                            class="btn btn-yellow"
-                            style="padding: 0.75rem 1.25rem; font-size: 0.9rem;">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                        </svg>
-                        Add
-                    </button>
+                    @livewire('storefront-add-to-cart', [
+                        'productId' => $product->id, 
+                        'showIcon' => true, 
+                        'buttonClass' => 'btn btn-yellow'
+                    ], key('add-to-bag-'.$product->id))
                 </div>
 
                 <div class="stock-indicator">
@@ -211,14 +214,6 @@
                         <span style="color: #ef4444;">SOLD OUT</span>
                     @endif
                 </div>
-
-                {{-- Toast Message inside card --}}
-                @if(session()->has('message'))
-                    <div style="position:absolute; top:50%; left:10%; right:10%; transform:translateY(-50%); text-align:center; background:rgba(15,23,42,0.95); color:#fff; padding:1.5rem; border-radius:16px; font-weight:700; z-index:20; pointer-events:none; animation: fadeUp 0.3s ease;">
-                        {{ session('message') }}
-                    </div>
-                    <style>@keyframes fadeUp { from { opacity: 0; transform: translateY(-40%); } to { opacity: 1; transform: translateY(-50%); } }</style>
-                @endif
             </div>
         @empty
             <div style="grid-column: 1 / -1; text-align: center; padding: 6rem;">

@@ -31,7 +31,10 @@
             color: #fff;
             font-family: inherit;
         }
-        .promo-input:focus { outline: none; border-color: var(--brand-yellow); }
+        @media (max-width: 1024px) {
+            .cart-grid { grid-template-columns: 1fr; }
+            .summary-side { position: static; }
+        }
     </style>
 
     <div style="margin-bottom: 3rem;">
@@ -43,15 +46,32 @@
         <div class="cart-main">
             @forelse($items as $id => $item)
                 <div class="item-row" wire:key="item-{{ $id }}">
-                    {{-- Assuming we might have image info, or just show a placeholder for now --}}
-                    <div style="background: #f1f5f9; width: 80px; height: 80px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
-                        📦
-                    </div>
+                    <a href="{{ route('products.show', $item['slug'] ?? $id) }}" class="item-link" style="flex-shrink: 0;">
+                        @if(isset($item['image']))
+                            <img src="{{ asset('storage/' . $item['image']) }}" class="item-image" alt="{{ $item['name'] }}">
+                        @else
+                            <div class="item-image" style="display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: #f1f5f9;">
+                                📦
+                            </div>
+                        @endif
+                    </a>
                     <div style="flex: 1;">
                         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
                             <div>
-                                <div style="font-weight: 800; font-size: 1.1rem; color: var(--brand-dark);">{{ $item['name'] }}</div>
-                                <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Quantity: {{ $item['quantity'] }}</div>
+                                <a href="{{ route('products.show', $item['slug'] ?? $id) }}" style="text-decoration: none;">
+                                    <div style="font-weight: 800; font-size: 1.1rem; color: var(--brand-dark);">{{ $item['name'] }}</div>
+                                </a>
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.75rem;">
+                                    <div style="display: flex; align-items: center; background: #f1f5f9; border-radius: 8px; padding: 4px;">
+                                        <button wire:click="decrementQuantity({{ $id }})" 
+                                                wire:loading.attr="disabled"
+                                                style="border: none; background: none; padding: 4px 10px; cursor: pointer; font-weight: 900; color: var(--brand-dark);">-</button>
+                                        <span style="font-weight: 800; min-width: 20px; text-align: center; font-size: 0.9rem;">{{ $item['quantity'] }}</span>
+                                        <button wire:click="incrementQuantity({{ $id }})" 
+                                                wire:loading.attr="disabled"
+                                                style="border: none; background: none; padding: 4px 10px; cursor: pointer; font-weight: 900; color: var(--brand-dark);">+</button>
+                                    </div>
+                                </div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-weight: 900; font-size: 1.1rem; color: var(--brand-dark);">${{ number_format($item['price'] * $item['quantity'], 2) }}</div>
@@ -59,6 +79,7 @@
                             </div>
                         </div>
                         <button wire:click="removeItem({{ $id }})" 
+                                wire:loading.attr="disabled"
                                 style="margin-top: 1rem; color: #ef4444; border: none; background: none; cursor: pointer; font-weight: 800; font-size: 0.75rem; letter-spacing: 0.05em; padding: 0; display: flex; align-items: center; gap: 4px;">
                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />

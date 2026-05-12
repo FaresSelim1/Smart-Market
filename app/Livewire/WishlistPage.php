@@ -15,6 +15,8 @@ class WishlistPage extends Component
     public function removeFromWishlist($productId, WishlistService $service)
     {
         $service->toggle($productId);
+        $this->dispatch('wishlist-updated');
+        session()->flash('message', 'Item removed from your vault.');
     }
 
     #[Layout('layouts.app')]

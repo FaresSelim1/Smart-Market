@@ -2,68 +2,65 @@
 
 namespace App\Services;
 
+use App\Models\Order;
 use Stripe\Stripe;
 use Stripe\Checkout\Session;
 
-/**
- * Service handling Stripe payment integration.
- * Creates checkout sessions and processes payments.
- */
 class PaymentService
 {
-    private bool $stripeEnabled;
-
     public function __construct()
     {
-        $secret = config('services.stripe.secret');
-        $this->stripeEnabled = !empty($secret);
-
-        if ($this->stripeEnabled) {
-            Stripe::setApiKey($secret);
-        }
+        Stripe::setApiKey(config('services.stripe.secret'));
     }
 
     /**
      * Create a Stripe Checkout Session for the given order.
-     *
-     * @param \App\Models\Order $order
-     * @return Session|object  Returns a Stripe Session or a mock object for dev
      */
-    public function createCheckoutSession($order)
+    public function createCheckoutSession(Order $order): Session
     {
-        if (! $this->stripeEnabled) {
-            // Fallback for development without Stripe keys
-            // Returns a mock object that redirects to payment success
-            return (object) [
-                'url' => route('payment.success', ['order_ref' => $order->order_number]),
+        $lineItems = $order->orderItems->map(function ($item) {
+            return [
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => $item->product->name,
+                    ],
+                    'unit_amount' => (int) ($item->price * 100), // Stripe expects amounts in cents
+                ],
+                'quantity' => $item->quantity,
+            ];
+        })->toArray();
+
+        // Add discount as a separate line item if present
+        if ($order->discount > 0) {
+            $lineItems[] = [
+                'price_data' => [
+                    'currency' => 'usd',
+                    'product_data' => [
+                        'name' => 'Discount (' . ($order->coupon_code ?? 'Promo') . ')',
+                    ],
+                    'unit_amount' => -(int) ($order->discount * 100),
+                ],
+                'quantity' => 1,
             ];
         }
 
         return Session::create([
             'payment_method_types' => ['card'],
-            'line_items' => [[
-                'price_data' => [
-                    'currency'     => 'usd',
-                    'product_data' => ['name' => 'Order ' . $order->order_number],
-                    'unit_amount'  => (int) ($order->total_amount * 100), // Amount in cents
-                ],
-                'quantity' => 1,
-            ]],
-            'mode'        => 'payment',
-            'success_url' => route('payment.success') . '?order_ref=' . $order->order_number . '&session_id={CHECKOUT_SESSION_ID}',
-            'cancel_url'  => route('payment.cancel') . '?order_ref=' . $order->order_number,
-            'metadata'    => [
-                'order_id'     => $order->id,
-                'order_number' => $order->order_number,
-            ],
+            'line_items' => $lineItems,
+            'mode' => 'payment',
+            'success_url' => route('payment.success') . '?session_id={CHECKOUT_SESSION_ID}',
+            'cancel_url' => route('payment.cancel') . '?session_id={CHECKOUT_SESSION_ID}',
+            'client_reference_id' => $order->id,
+            'customer_email' => $order->user?->email ?? $order->customer_email,
         ]);
     }
 
     /**
-     * Check if Stripe is properly configured.
+     * Retrieve a Stripe Session by ID.
      */
-    public function isEnabled(): bool
+    public function getSession(string $sessionId): Session
     {
-        return $this->stripeEnabled;
+        return Session::retrieve($sessionId);
     }
 }

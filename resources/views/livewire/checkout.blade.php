@@ -33,13 +33,15 @@
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                 <div class="form-group">
-                    <label class="form-label">Recipient</label>
-                    <input type="text" value="{{ Auth::user()->name }}" disabled class="form-control" style="background: #f8fafc; color: #94a3b8; font-weight: 600;">
+                    <label class="form-label">Recipient Name</label>
+                    <input type="text" wire:model="customerName" class="form-control" placeholder="Full name">
+                    @error('customerName') <span style="color:#ef4444; font-size:0.8rem;">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">Authorization Email</label>
-                    <input type="email" value="{{ Auth::user()->email }}" disabled class="form-control" style="background: #f8fafc; color: #94a3b8; font-weight: 600;">
+                    <input type="email" wire:model="customerEmail" class="form-control" placeholder="email@example.com">
+                    @error('customerEmail') <span style="color:#ef4444; font-size:0.8rem;">{{ $message }}</span> @enderror
                 </div>
             </div>
 

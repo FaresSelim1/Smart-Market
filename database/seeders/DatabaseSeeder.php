@@ -15,12 +15,25 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
+        // 0. Clear existing data first to avoid stale IDs
+        \Schema::disableForeignKeyConstraints();
+        \Illuminate\Support\Facades\Cache::flush();
+        \DB::table('product_images')->truncate();
+        \DB::table('branch_product')->truncate();
+        \DB::table('flash_sales')->truncate();
+        \DB::table('order_items')->truncate();
+        \DB::table('cart_items')->truncate();
+        Product::truncate();
+        Category::truncate();
+        \Schema::enableForeignKeyConstraints();
+
         // 1. Create Admin & Customer
         User::updateOrCreate(
             ['email' => 'admin@market.com'],
             [
                 'name'     => 'Admin User',
                 'password' => Hash::make('password'),
+                'role'     => 'admin',
             ]
         );
 
@@ -29,105 +42,84 @@ class DatabaseSeeder extends Seeder
             [
                 'name'     => 'Test Customer',
                 'password' => Hash::make('password'),
+                'role'     => 'user',
             ]
         );
 
         // 2. Create Branches
-        $branch1 = Branch::firstOrCreate(
-            ['slug' => 'cairo-main'],
-            ['name' => 'Cairo Main', 'location' => 'Downtown']
-        );
-        $branch2 = Branch::firstOrCreate(
-            ['slug' => 'alex-port'],
-            ['name' => 'Alexandria Port', 'location' => 'Corniche']
-        );
+        $branches = collect([
+            Branch::firstOrCreate(['slug' => 'cairo-main'], ['name' => 'Cairo Main', 'location' => 'Downtown']),
+            Branch::firstOrCreate(['slug' => 'alex-port'], ['name' => 'Alexandria Port', 'location' => 'Corniche']),
+        ]);
 
         // 3. Create Categories
-        $electronics = Category::firstOrCreate(
-            ['slug' => 'electronics'],
-            ['name' => 'Electronics']
-        );
-        $accessories = Category::firstOrCreate(
-            ['slug' => 'accessories'],
-            ['name' => 'Accessories']
-        );
-        $security = Category::firstOrCreate(
-            ['slug' => 'security'],
-            ['name' => 'Security Equipment']
+        $categoryNames = [
+            'Laptops', 'Smartphones', 'Accessories', 'Gaming', 
+            'Monitors', 'Audio Devices', 'Smart Home', 'Networking Devices',
+            'Security Equipment'
+        ];
+        $categories = collect($categoryNames)->map(fn($name) => 
+            Category::firstOrCreate(['name' => $name], ['slug' => \Illuminate\Support\Str::slug($name)])
         );
 
-        // 4. Clear existing product data
-        \Schema::disableForeignKeyConstraints();
-        \DB::table('product_images')->delete();
-        \DB::table('branch_product')->delete();
-        \DB::table('flash_sales')->delete();
-        \DB::table('order_items')->delete(); // Clear order items too
-        Product::query()->delete();
-        \Schema::enableForeignKeyConstraints();
+        // 5. Seed 100+ Products using Factory
+        Product::factory(110)
+            ->recycle($categories)
+            ->create()
+            ->each(function ($product) use ($branches) {
+                // Attach to branches with random stock
+                foreach ($branches as $branch) {
+                    $product->branches()->attach($branch->id, [
+                        'stock_level' => rand(5, 100),
+                        'low_stock_threshold' => 10,
+                    ]);
+                }
 
-        // 5. Create Products and attach to branches
-        $laptop = Product::create([
-            'sku'         => 'HW-MB-001',
-            'category_id' => $electronics->id,
-            'name'        => 'MateBook B3 Pro',
-            'description' => 'High performance workstation laptop with 4K display and titanium finish.',
-            'price'       => 1499.00,
-        ]);
-        $laptop->images()->create(['path' => 'products/laptop.png', 'sort_order' => 0]);
-        $laptop->branches()->sync([
-            $branch1->id => ['stock_level' => 50, 'low_stock_threshold' => 10],
-            $branch2->id => ['stock_level' => 5, 'low_stock_threshold' => 10],
-        ]);
+                // Determine image based on category
+                $imageMapping = [
+                    'Laptops'            => 'products/laptop_premium.png',
+                    'Smartphones'        => 'products/smartphone_premium.png',
+                    'Audio Devices'      => 'products/headphones.png',
+                    'Security Equipment' => 'products/camera.png',
+                    'Accessories'        => 'products/headphones.png',
+                    'Gaming'             => 'products/laptop_premium.png',
+                    'Monitors'           => 'products/laptop_premium.png',
+                    'Smart Home'         => 'products/camera.png',
+                    'Networking Devices' => 'products/laptop_premium.png',
+                ];
 
-        $camera = Product::create([
-            'sku'         => 'SEC-CAM-001',
-            'category_id' => $security->id,
-            'name'        => 'Onyx Smart Guard',
-            'description' => '4K Night-vision AI-powered security camera with two-way audio.',
-            'price'       => 349.99,
-        ]);
-        $camera->images()->create(['path' => 'products/camera.png', 'sort_order' => 0]);
-        $camera->branches()->sync([
-            $branch1->id => ['stock_level' => 100, 'low_stock_threshold' => 20],
-            $branch2->id => ['stock_level' => 75, 'low_stock_threshold' => 15],
-        ]);
+                $categoryName = $product->category->name;
+                $imagePath = $imageMapping[$categoryName] ?? 'products/laptop.png';
 
-        $headphones = Product::create([
-            'sku'         => 'ACC-HP-001',
-            'category_id' => $accessories->id,
-            'name'        => 'AeroTune Pro',
-            'description' => 'Studio-grade noise canceling headphones with 40-hour battery life.',
-            'price'       => 249.00,
-        ]);
-        $headphones->images()->create(['path' => 'products/headphones.png', 'sort_order' => 0]);
-        $headphones->branches()->sync([
-            $branch1->id => ['stock_level' => 30, 'low_stock_threshold' => 5],
-            $branch2->id => ['stock_level' => 8, 'low_stock_threshold' => 5],
-        ]);
+                // Add primary image
+                $product->images()->create([
+                    'path' => $imagePath,
+                    'sort_order' => 0
+                ]);
+            });
 
-        // 6. Create Coupons (matching the enum: 'fixed' or 'percent')
-        Coupon::updateOrCreate(
-            ['code' => 'STORE2026'],
+        // 6. Create some Coupons
+        Coupon::firstOrCreate(
+            ['code' => 'WELCOME20'],
             [
                 'type'           => 'percent',
-                'value'          => 10,
-                'max_uses'       => 100,
+                'value'          => 20,
+                'max_uses'       => 500,
                 'used_count'     => 0,
-                'min_cart_value'  => 100.00,
+                'min_cart_value'  => 50.00,
                 'is_active'      => true,
-                'expires_at'     => Carbon::now()->addMonth(),
+                'expires_at'     => now()->addMonths(6),
             ]
         );
 
-        // 7. Create Flash Sale
-        \App\Models\FlashSale::updateOrCreate(
-            ['product_id' => $laptop->id],
-            [
-                'discount_price' => 1199.99,
-                'starts_at'      => Carbon::now()->subDay(),
-                'ends_at'        => Carbon::now()->addDays(2),
+        // 7. Create some Flash Sales for variety
+        Product::inRandomOrder()->take(15)->get()->each(function ($product) {
+            $product->flashSales()->create([
+                'discount_price' => $product->price * 0.75,
+                'starts_at'      => now()->subDays(2),
+                'ends_at'        => now()->addDays(5),
                 'is_active'      => true,
-            ]
-        );
+            ]);
+        });
     }
 }

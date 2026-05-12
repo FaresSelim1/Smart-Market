@@ -3,89 +3,125 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
+use App\Models\Product;
 use App\Services\CartService;
-use App\Jobs\SendOrderConfirmation;
+use App\Services\PaymentService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Stripe\Webhook;
 
-/**
- * Controller handling payment gateway callbacks (success/cancel/webhook).
- */
 class PaymentController extends Controller
 {
+    protected $paymentService;
+    protected $cartService;
+
+    public function __construct(PaymentService $paymentService, CartService $cartService)
+    {
+        $this->paymentService = $paymentService;
+        $this->cartService = $cartService;
+    }
+
     /**
-     * Handle the Success Callback from Stripe/PayMob.
+     * Handle Stripe Success Callback.
      */
     public function handleGatewayCallback(Request $request)
     {
-        // Retrieve order by order_number, ensuring the authenticated user owns it
-        $order = Order::where('order_number', $request->order_ref)
-                     ->where('user_id', Auth::id())
-                     ->firstOrFail();
+        $sessionId = $request->get('session_id');
 
-        // Update status as per project criteria
-        $order->update([
-            'payment_status' => 'paid',
-            'status'         => 'processing',
-        ]);
+        if (!$sessionId) {
+            return redirect()->route('home');
+        }
 
-        // Trigger the Queued Job for Email & PDF Invoice
-        SendOrderConfirmation::dispatch($order);
+        try {
+            $session = $this->paymentService->getSession($sessionId);
+            $orderId = $session->client_reference_id;
+            $order = Order::findOrFail($orderId);
 
-        // Clear the DB-backed cart after confirmed payment success
-        app(CartService::class)->clear();
+            if ($session->payment_status === 'paid') {
+                $this->finalizeOrder($order, $session->payment_intent);
+                $this->cartService->clear();
+                
+                return view('payment.success', ['order' => $order]);
+            }
 
-        logger()->info('Cart cleared after payment success', [
-            'order_id'     => $order->id,
-            'order_number' => $order->order_number,
-            'user_id'      => $order->user_id,
-        ]);
+            return redirect()->route('payment.cancel');
 
-        return view('checkout.success', compact('order'));
+        } catch (\Exception $e) {
+            Log::error('Stripe Success Callback Error: ' . $e->getMessage());
+            return redirect()->route('home')->with('error', 'Something went wrong while verifying your payment.');
+        }
     }
 
     /**
-     * Handle the Cancel Callback from payment gateway.
+     * Handle Stripe Cancel Callback.
      */
     public function handleCancel(Request $request)
     {
-        $order = null;
-
-        if ($request->has('order_ref')) {
-            $order = Order::where('order_number', $request->order_ref)
-                         ->where('user_id', Auth::id())
-                         ->first();
-        }
-
-        return view('checkout.cancel', compact('order'));
+        return view('payment.cancel');
     }
 
     /**
-     * Webhook for asynchronous server-to-server confirmation.
+     * Stripe Webhook Handler.
      */
     public function webhook(Request $request)
     {
-        // Basic webhook handling — signature verification should be added
-        // for production Stripe integration
-        $payload = $request->all();
+        $payload = $request->getContent();
+        $sigHeader = $request->header('Stripe-Signature');
+        $endpointSecret = config('services.stripe.webhook_secret');
 
-        if (($payload['type'] ?? '') === 'checkout.session.completed') {
-            $session = $payload['data']['object'];
-            $orderId = $session['metadata']['order_id'] ?? null;
-
-            if ($orderId) {
-                $order = Order::find($orderId);
-                if ($order) {
-                    $order->update([
-                        'payment_status' => 'paid',
-                        'status'         => 'processing',
-                    ]);
-
-                    SendOrderConfirmation::dispatch($order);
-                }
-            }
+        try {
+            $event = Webhook::constructEvent($payload, $sigHeader, $endpointSecret);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Invalid signature'], 400);
         }
 
-        return response()->json(['status' => 'verified']);
+        switch ($event->type) {
+            case 'checkout.session.completed':
+                $session = $event->data->object;
+                $orderId = $session->client_reference_id;
+                $order = Order::find($orderId);
+                if ($order && $order->payment_status !== 'paid') {
+                    $this->finalizeOrder($order, $session->payment_intent);
+                }
+                break;
+
+            case 'payment_intent.payment_failed':
+                $intent = $event->data->object;
+                $order = Order::where('stripe_payment_intent', $intent->id)->first();
+                if ($order) {
+                    $order->update(['status' => 'failed', 'payment_status' => 'failed']);
+                }
+                break;
+        }
+
+        return response()->json(['status' => 'success']);
+    }
+
+    /**
+     * Finalize the order: update status and reduce stock.
+     */
+    protected function finalizeOrder(Order $order, string $paymentIntentId)
+    {
+        if ($order->payment_status === 'paid') return;
+
+        \Illuminate\Support\Facades\DB::transaction(function () use ($order, $paymentIntentId) {
+            $order->update([
+                'payment_status' => 'paid',
+                'status'         => 'processing',
+                'stripe_payment_intent' => $paymentIntentId,
+            ]);
+
+            // Reduce stock from the specific branch assigned to the order
+            foreach ($order->orderItems as $item) {
+                $product = $item->product;
+                $branch = $product->branches()->where('branches.id', $order->branch_id)->first();
+                
+                if ($branch && $branch->pivot->stock_level >= $item->quantity) {
+                    $branch->pivot->decrement('stock_level', $item->quantity);
+                } else {
+                    Log::warning("Stock discrepancy during finalization for Order {$order->id}, Product {$product->id}, Branch {$order->branch_id}");
+                }
+            }
+        });
     }
 }

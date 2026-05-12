@@ -3,86 +3,85 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
-use App\Jobs\SendOrderConfirmation;
-use App\Jobs\CheckLowStock;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
-/**
- * Service handling order creation and status management.
- * Encapsulates business logic to keep controllers thin.
- */
 class OrderService
 {
-    /**
-     * Create a new order and deduct branch-specific stock.
-     *
-     * @param array    $data       ['total' => float, 'address' => string, 'discount' => float, 'coupon_code' => string|null]
-     * @param array    $cartItems  [product_id => ['quantity' => int, 'price' => float], ...]
-     * @param int|null $branchId   The branch to fulfill from
-     * @return Order
-     */
-    public function createOrder(array $data, array $cartItems, $branchId): Order
+    protected $cartService;
+
+    public function __construct(CartService $cartService)
     {
-        return DB::transaction(function () use ($data, $cartItems, $branchId) {
-            $order = Order::create([
-                'user_id'          => Auth::id(),
-                'branch_id'        => $branchId,
-                'order_number'     => 'ORD-' . strtoupper(uniqid()),
-                'total_amount'     => 0, // Placeholder, calculated below
-                'discount'         => $data['discount'] ?? 0,
-                'coupon_code'      => $data['coupon_code'] ?? null,
-                'status'           => 'pending',
-                'payment_status'   => 'unpaid',
-                'shipping_address' => $data['address'] ?? 'No Address Provided',
-            ]);
-
-            $calculatedSubtotal = 0;
-
-            foreach ($cartItems as $productId => $item) {
-                $product = Product::find($productId);
-
-                if ($product) {
-                    $price = $item['price'] ?? $product->current_price;
-                    $quantity = $item['quantity'];
-
-                    $order->items()->create([
-                        'product_id' => $productId,
-                        'quantity'   => $quantity,
-                        'price'      => $price,
-                    ]);
-
-                    $calculatedSubtotal += ($price * $quantity);
-
-                    // Deduct stock specifically for this branch
-                    if ($branchId) {
-                        DB::table('branch_product')
-                            ->where('product_id', $productId)
-                            ->where('branch_id', $branchId)
-                            ->decrement('stock_level', $quantity);
-
-                        // Dispatch low stock check
-                        CheckLowStock::dispatch($productId, $branchId);
-                    }
-                }
-            }
-
-            // Update order with actual total
-            $finalTotal = max(0, $calculatedSubtotal - ($data['discount'] ?? 0));
-            $order->update(['total_amount' => $finalTotal]);
-
-            return $order;
-        });
+        $this->cartService = $cartService;
     }
 
     /**
-     * Update order status with transition validation.
-     *
-     * @throws \InvalidArgumentException
+     * Create a pending order from the current cart.
      */
-    public function updateStatus(Order $order, string $status): void
+    public function createOrderFromCart(array $customerData, float $discount = 0, string $couponCode = null, int $branchId = null): Order
     {
-        $order->transitionTo($status);
+        $items = $this->cartService->getItems();
+
+        if ($items->isEmpty()) {
+            throw new \Exception("Cannot create order from empty cart.");
+        }
+
+        if (!$branchId) {
+            $branchId = session('active_branch_id', \App\Models\Branch::first()?->id);
+        }
+
+        if (!$branchId) {
+            throw new \Exception('No deployment branch selected.');
+        }
+
+        logger()->info('Creating order with branch', [
+            'branch_id' => $branchId,
+            'customer'  => $customerData['email'] ?? 'guest',
+        ]);
+
+        return DB::transaction(function () use ($items, $customerData, $discount, $couponCode, $branchId) {
+            // 1. Validate Stock
+            foreach ($items as $item) {
+                $product = Product::findOrFail($item['product_id']);
+                $totalStock = $product->branches->sum('pivot.stock_level');
+                
+                if ($totalStock < $item['quantity']) {
+                    throw new \Exception("Insufficient stock for product: " . $product->name);
+                }
+            }
+
+            // 2. Calculate Subtotal
+            $subtotal = $items->reduce(fn($carry, $item) => $carry + ($item['price'] * $item['quantity']), 0);
+
+            // 3. Create Order
+            $order = Order::create([
+                'user_id'          => Auth::id(),
+                'branch_id'        => $branchId,
+                'order_number'     => 'ORD-' . strtoupper(Str::random(8)),
+                'total_amount'     => max(0, $subtotal - $discount),
+                'discount'         => $discount,
+                'coupon_code'      => $couponCode,
+                'status'           => 'pending',
+                'payment_status'   => 'unpaid',
+                'shipping_address' => $customerData['address'] ?? 'Default Address',
+                'customer_name'    => $customerData['name'] ?? null,
+                'customer_email'   => $customerData['email'] ?? null,
+            ]);
+
+            // 4. Create Order Items
+            foreach ($items as $item) {
+                OrderItem::create([
+                    'order_id'   => $order->id,
+                    'product_id' => $item['product_id'],
+                    'quantity'   => $item['quantity'],
+                    'price'      => $item['price'],
+                ]);
+            }
+
+            return $order;
+        });
     }
 }

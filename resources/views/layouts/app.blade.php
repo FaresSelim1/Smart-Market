@@ -98,8 +98,23 @@
             border-radius: 14px !important;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.2);
+            position: relative;
+        }
+
+        .cart-badge {
+            background: var(--brand-yellow);
+            color: var(--brand-dark);
+            font-size: 0.7rem;
+            font-weight: 900;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 2px solid var(--brand-dark);
         }
 
         .cart-link:hover {
@@ -190,21 +205,26 @@
         <a href="/" class="logo">SMART<span>.</span>MARKET</a>
         <div class="nav-links">
             <a href="/">Catalog</a>
-            <a href="/orders">My Orders</a>
-            <a href="{{ route('wishlist') }}">Wishlist</a>
-            
             @auth
+                <a href="/orders">My Orders</a>
+                <a href="{{ route('wishlist') }}">Wishlist</a>
                 <form action="{{ route('logout') }}" method="POST" style="display: inline;">
                     @csrf
                     <button type="submit" class="logout-btn">Logout</button>
                 </form>
             @endauth
 
+            @guest
+                <a href="{{ route('login') }}" style="color: var(--brand-dark); font-weight: 800;">Login</a>
+                <a href="{{ route('register') }}" style="background: var(--brand-yellow); color: var(--brand-dark); padding: 8px 16px; border-radius: 10px; font-weight: 800;">Register</a>
+            @endguest
+
             <a href="/cart" class="cart-link">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                 </svg>
-                Bag
+                <span>Bag</span>
+                @livewire('cart-count')
             </a>
         </div>
     </nav>

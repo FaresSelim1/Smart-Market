@@ -22,28 +22,38 @@ class ProductService
      *
      * @param mixed   $catalogBranchId null = Global, otherwise selected branch id
      * @param string  $search          Search query string
+     * @param mixed   $categoryId      null = All, otherwise selected category id
      * @return \Illuminate\Support\Collection
      */
-    public function getAvailableProducts($catalogBranchId = null, string $search = '')
+    public function getAvailableProducts($catalogBranchId = null, string $search = '', $categoryId = null)
     {
         // Defensive normalization: Livewire often passes empty strings or numeric strings
         $catalogBranchId = (is_numeric($catalogBranchId) && (int) $catalogBranchId > 0) 
             ? (int) $catalogBranchId 
             : null;
 
-        $cacheKey = "products:branch:{$catalogBranchId}:search:" . md5($search);
+        $categoryId = (is_numeric($categoryId) && (int) $categoryId > 0)
+            ? (int) $categoryId
+            : null;
 
-        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($catalogBranchId, $search) {
-            return $this->queryProducts($catalogBranchId, $search);
+        $cacheKey = "products:branch:{$catalogBranchId}:category:{$categoryId}:search:" . md5($search);
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($catalogBranchId, $search, $categoryId) {
+            return $this->queryProducts($catalogBranchId, $search, $categoryId);
         });
     }
 
     /**
      * Execute the actual product query.
      */
-    private function queryProducts($catalogBranchId, string $search)
+    private function queryProducts($catalogBranchId, string $search, $categoryId)
     {
         $query = Product::query();
+
+        // Category filter
+        if ($categoryId) {
+            $query->where('category_id', $categoryId);
+        }
 
         // Search filter (applies to both modes)
         $query->when($search, function ($q) use ($search) {

@@ -34,6 +34,8 @@ class WishlistService
         
         if (!$user) return new Collection();
 
-        return $user->wishlist()->with('category')->get();
+        return $user->wishlist()
+            ->with(['category', 'images', 'primaryImage'])
+            ->get();
     }
 }

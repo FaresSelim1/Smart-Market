@@ -17,6 +17,10 @@ class Checkout extends Component
     public $discount = 0;
     public $total = 0;
     public $couponCode = '';
+    
+    // Contact & Shipping
+    public $customerName = '';
+    public $customerEmail = '';
     public $shippingAddress = '';
     
     public $couponError = '';
@@ -26,6 +30,11 @@ class Checkout extends Component
     {
         if ($cartService->getCount() === 0) {
             return redirect()->route('cart');
+        }
+
+        if (Auth::check()) {
+            $this->customerName = Auth::user()->name;
+            $this->customerEmail = Auth::user()->email;
         }
 
         $this->loadCart($cartService);
@@ -40,7 +49,7 @@ class Checkout extends Component
 
     public function calculateTotal()
     {
-        $this->total = $this->subtotal - $this->discount;
+        $this->total = max(0, $this->subtotal - $this->discount);
     }
 
     public function applyCoupon(DiscountService $discountService)
@@ -61,11 +70,13 @@ class Checkout extends Component
     }
 
     /**
-     * Process the final order.
+     * Process the final order and redirect to Stripe.
      */
     public function processOrder(OrderService $orderService, PaymentService $paymentService)
     {
         $this->validate([
+            'customerName'    => 'required|string|max:255',
+            'customerEmail'   => 'required|email|max:255',
             'shippingAddress' => 'required|string|min:10',
         ], [
             'shippingAddress.required' => 'Please provide a delivery address.',
@@ -73,28 +84,25 @@ class Checkout extends Component
         ]);
 
         try {
-            // Use session branch or default
-            $branchId = session('active_branch_id', \App\Models\Branch::first()?->id);
-
-            $order = $orderService->createOrder(
+            // 1. Create Pending Order
+            $order = $orderService->createOrderFromCart(
                 [
-                    'total' => $this->total,
-                    'discount' => $this->discount,
-                    'coupon_code' => $this->couponCode,
+                    'name'    => $this->customerName,
+                    'email'   => $this->customerEmail,
                     'address' => $this->shippingAddress,
                 ],
-                // Format items for OrderService
-                collect($this->items)->mapWithKeys(fn($item) => [
-                    $item['product_id'] => [
-                        'quantity' => $item['quantity'],
-                        'price' => $item['price']
-                    ]
-                ])->toArray(),
-                $branchId
+                $this->discount,
+                $this->couponCode
             );
 
-            // Redirect to Stripe
-            return $paymentService->createCheckoutSession($order);
+            // 2. Create Stripe Session
+            $session = $paymentService->createCheckoutSession($order);
+
+            // 3. Save Stripe Session ID to Order
+            $order->update(['stripe_session_id' => $session->id]);
+
+            // 4. Redirect to Stripe Checkout
+            return redirect($session->url);
 
         } catch (\Exception $e) {
             session()->flash('error', 'Checkout failed: ' . $e->getMessage());

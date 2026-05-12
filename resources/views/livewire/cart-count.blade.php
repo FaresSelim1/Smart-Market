@@ -1,6 +1,8 @@
 <div>
-    <span class="bg-red-500 text-white rounded-full px-2 py-1 text-xs">
-        {{ $count }}
-    </span>
+    @if($count > 0)
+        <span class="cart-badge">
+            {{ $count }}
+        </span>
+    @endif
 </div>
 

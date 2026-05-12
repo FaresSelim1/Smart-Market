@@ -37,6 +37,10 @@ class Order extends Model
         'status',
         'payment_status',
         'shipping_address',
+        'stripe_session_id',
+        'stripe_payment_intent',
+        'customer_name',
+        'customer_email',
     ];
 
     protected $casts = [
@@ -55,6 +59,11 @@ class Order extends Model
     }
 
     public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+    public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
     }
