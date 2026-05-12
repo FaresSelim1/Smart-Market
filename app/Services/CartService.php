@@ -23,7 +23,27 @@ class CartService
     {
         \Illuminate\Support\Facades\Log::info("Attempting to add to cart", ['productId' => $productId, 'quantity' => $quantity]);
         $product = Product::findOrFail($productId);
+
+        if ($product->stock <= 0) {
+            throw new \RuntimeException('This product is out of stock');
+        }
+
+        // Calculate current quantity in cart to check against total stock
+        $currentQty = 0;
         $userId = Auth::id();
+
+        if ($userId) {
+            $currentQty = (int) CartItem::where('user_id', $userId)
+                                ->where('product_id', $productId)
+                                ->value('quantity');
+        } else {
+            $cart = session()->get(self::SESSION_KEY, []);
+            $currentQty = isset($cart[$productId]) ? (int) $cart[$productId]['quantity'] : 0;
+        }
+
+        if (($currentQty + $quantity) > $product->stock) {
+            throw new \RuntimeException('Not enough stock available');
+        }
 
         if ($userId) {
             // Logged-in user: Database storage
@@ -108,6 +128,11 @@ class CartService
         }
 
         $product = Product::findOrFail($productId);
+
+        if ($quantity > $product->stock) {
+            throw new \RuntimeException('Not enough stock available');
+        }
+
         $userId = Auth::id();
 
         if ($userId) {

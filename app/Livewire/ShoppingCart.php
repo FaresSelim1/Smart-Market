@@ -32,8 +32,12 @@ class ShoppingCart extends Component
         $item = $items->firstWhere('product_id', $productId);
         
         if ($item) {
-            app(CartService::class)->updateQuantity((int) $productId, $item['quantity'] + 1);
-            $this->dispatch('cart-updated');
+            try {
+                app(CartService::class)->updateQuantity((int) $productId, $item['quantity'] + 1);
+                $this->dispatch('cart-updated');
+            } catch (\RuntimeException $e) {
+                session()->flash('error', $e->getMessage());
+            }
         }
     }
 

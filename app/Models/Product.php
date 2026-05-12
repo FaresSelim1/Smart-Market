@@ -114,4 +114,16 @@ class Product extends Model
             })
             ->first();
     }
+    /**
+     * Get the total stock across all branches.
+     * This provides a fallback if the 'stock' attribute wasn't selected in the query.
+     */
+    public function getStockAttribute()
+    {
+        if (array_key_exists('stock', $this->attributes)) {
+            return (int) $this->attributes['stock'];
+        }
+
+        return (int) $this->branches()->sum('stock_level');
+    }
 }

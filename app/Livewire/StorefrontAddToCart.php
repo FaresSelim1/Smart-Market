@@ -27,6 +27,8 @@ class StorefrontAddToCart extends Component
             $cart->add((int)$this->productId, 1);
             $this->dispatch('cart-updated');
             session()->flash('message', 'Item successfully added to your cart!');
+        } catch (\RuntimeException $e) {
+            session()->flash('error', $e->getMessage());
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error('AddToCart Failure: ' . $e->getMessage(), [
                 'productId' => $this->productId,
@@ -38,7 +40,11 @@ class StorefrontAddToCart extends Component
 
     public function render()
     {
-        return view('livewire.storefront-add-to-cart');
+        $product = \App\Models\Product::find($this->productId);
+        
+        return view('livewire.storefront-add-to-cart', [
+            'isOutOfStock' => $product ? $product->stock <= 0 : true
+        ]);
     }
 }
 

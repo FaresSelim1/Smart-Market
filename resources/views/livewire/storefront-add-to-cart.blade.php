@@ -14,15 +14,24 @@
         wire:click="addToCart"
         wire:loading.attr="disabled"
         wire:target="addToCart"
-        class="{{ $buttonClass }}"
+        @disabled($isOutOfStock)
+        class="{{ $buttonClass }} {{ $isOutOfStock ? 'opacity-50 cursor-not-allowed' : '' }}"
+        @if($isOutOfStock) style="background: #94a3b8; border-color: #94a3b8; cursor: not-allowed;" @endif
     >
         <span wire:loading.remove wire:target="addToCart" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-            @if($showIcon)
+            @if($isOutOfStock)
                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636" />
                 </svg>
+                {{ $showIcon ? 'N/A' : 'Out of Stock' }}
+            @else
+                @if($showIcon)
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                @endif
+                {{ $showIcon ? 'Add' : '+ Add to Bag' }}
             @endif
-            {{ $showIcon ? 'Add' : '+ Add to Bag' }}
         </span>
         <span wire:loading wire:target="addToCart">
             {{ $showIcon ? '...' : 'Adding...' }}
